@@ -3,7 +3,7 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b3b3f"><title>YaoHai Community</title><link rel="icon" href="/app-icon.svg"><link rel="stylesheet" href="/styles.css"></head>
 <body>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<dialog id="dialog"><form method="dialog"><button class="icon-button close" aria-label="关闭">×</button><div id="dialog-content"></div></form></dialog>
+<dialog id="dialog" aria-labelledby="dialog-title"><button id="dialog-close" type="button" class="icon-button close" aria-label="关闭">×</button><div id="dialog-content"></div></dialog>
 <header class="topbar"><button id="nav-toggle" class="icon-button" aria-label="打开导航">☰</button><a class="brand" href="#dashboard"><img src="/app-icon.svg" alt="">YaoHai Community</a><span id="connection" class="status">本地工作区</span><button id="logout" class="secondary">退出</button></header>
 <div class="shell"><nav id="nav" aria-label="主导航"><a href="#dashboard" data-view="dashboard">工作台</a><a href="#products" data-view="products">产品资料库</a><a href="#inquiries" data-view="inquiries">询盘处理</a><a href="#customers" data-view="customers">客户管理</a><a href="#reminders" data-view="reminders">跟进提醒</a><a href="#settings" data-view="settings">设置与备份</a></nav>
 <main id="app" tabindex="-1"><section hidden><table><caption>工作区数据</caption></table><label for="backup-file">备份文件</label><input id="backup-file" type="file"></section></main></div>

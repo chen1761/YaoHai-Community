@@ -31,7 +31,8 @@ test('HTTP workflow authenticates CRUD and CSV imports transactionally', async (
     assert.equal((await json('/api/inquiries/deadbeef/analyze', 'POST', {}, cookie)).status, 404);
     const inquiry = await json('/api/inquiries', 'POST', { subject: 'Quote', message: 'Need pricing' }, cookie); assert.equal(inquiry.status, 201); const inquiryId = (await inquiry.json()).id;
     assert.equal((await json('/api/inquiries/' + inquiryId + '/analyze', 'POST', {}, cookie)).status, 200);
-    assert.equal((await json('/api/inquiries/' + inquiryId + '/confirm-lead', 'POST', { approved: true, edits: { name: 'Edited Buyer' } }, cookie)).status, 201);
+    assert.equal((await json('/api/inquiries/' + inquiryId + '/confirm-lead', 'POST', { approved: true, edits: { name: 'Edited Buyer' }, drafts: { reply: 'edited reply', followUp: 'edited follow up' } }, cookie)).status, 201);
+    const confirmed = await json('/api/inquiries', 'GET', undefined, cookie); assert.equal((await confirmed.json()).find(item => item.id === inquiryId).confirmation.drafts.reply, 'edited reply');
     assert.equal((await json('/api/inquiries/x' + inquiryId + '/analyze', 'POST', {}, cookie)).status, 404);
     assert.equal((await json('/api/products/' + (await product.json()).id, 'DELETE', undefined, cookie)).status, 204);
   } finally { server.close(); await once(server, 'close'); rmSync(dir, { recursive: true, force: true }); }

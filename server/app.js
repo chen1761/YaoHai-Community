@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { extname, join, normalize } from 'node:path';
+import { extname, join, normalize, relative, isAbsolute } from 'node:path';
 import { readFile } from 'node:fs/promises';
 
 import { createStore } from './data-store.js';
@@ -52,11 +52,12 @@ export function createApp(options = {}) {
 const PUBLIC_ROOT = join(process.cwd(), 'public');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml' };
 async function serveStatic(pathname, response) {
-  const relative = pathname === '/' ? 'index.html' : pathname.slice(1);
-  const file = normalize(join(PUBLIC_ROOT, relative));
-  if (!file.startsWith(PUBLIC_ROOT) || !TYPES[extname(file)]) return sendJson(response, 404, { error: 'not_found' });
+  const requested = pathname === '/' ? 'index.html' : pathname.slice(1);
+  const file = normalize(join(PUBLIC_ROOT, requested));
+  const fromRoot = relative(PUBLIC_ROOT, file);
+  if (!fromRoot || isAbsolute(fromRoot) || fromRoot === '..' || fromRoot.startsWith(`..${join('', '\\')}`) || !TYPES[extname(file)]) return sendJson(response, 404, { error: 'not_found' });
   try { response.writeHead(200, { 'content-type': TYPES[extname(file)], 'cache-control': 'no-store' }); response.end(await readFile(file)); }
-  catch { sendJson(response, 404, { error: 'not_found' }); }
+  catch { if (!response.headersSent) sendJson(response, 404, { error: 'not_found' }); }
   return true;
 }
 

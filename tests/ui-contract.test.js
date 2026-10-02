@@ -30,8 +30,22 @@ test('HTTP serves the community entrypoint and assets', async () => {
     const page = await fetch(base + '/');
     assert.equal(page.status, 200);
     assert.match(await page.text(), /YaoHai Community/);
-    assert.equal((await fetch(base + '/styles.css')).status, 200);
-    assert.equal((await fetch(base + '/script.js')).status, 200);
-    assert.equal((await fetch(base + '/app-icon.svg')).status, 200);
+    const styles = await fetch(base + '/styles.css'); assert.equal(styles.status, 200); await styles.text();
+    const script = await fetch(base + '/script.js'); assert.equal(script.status, 200); await script.text();
+    const icon = await fetch(base + '/app-icon.svg'); assert.equal(icon.status, 200); await icon.text();
   } finally { server.close(); await once(server, 'close'); }
+});
+
+test('UI exposes complete recovery and dialog contracts', async () => {
+  const [html, script] = await Promise.all([load('index.html'), load('script.js')]);
+  assert.match(html, /aria-labelledby="dialog-title"/);
+  assert.match(html, /id="dialog-close"/);
+  assert.match(script, /products\/import/);
+  assert.match(script, /drafts: \{ reply, followUp \}/);
+  assert.match(script, /baseUrl/);
+  assert.match(script, /authentication_required/);
+  assert.match(script, /finally/);
+  const app = await readFile(new URL('../server/app.js', import.meta.url), 'utf8');
+  assert.match(app, /relative\(PUBLIC_ROOT, file\)/);
+  assert.match(app, /isAbsolute\(fromRoot\)/);
 });
