@@ -57,17 +57,25 @@ test('business export excludes auth tables and sensitive settings', async () => 
         { key: 'provider_api_key', value: 'credential-value' },
         { key: 'encrypted_payload', value: 'ciphertext' },
         { key: 'session_timeout', value: '12h' },
+        { key: 'integration', value: { api_key: 'secret' } },
+        { key: 'opaque', value: { encryptedPayload: 'secret' } },
+        { key: 'safeWithToken', value: { token: 'secret' } },
+        { key: 'safeWithSession', value: { session: 'secret' } },
       ],
-      products: [], inquiries: [], customers: [], reminders: [], audit_logs: [],
+      products: [{ id: 'product-1', name: 'Starter', hidden: 'do-not-export' }],
+      inquiries: [], customers: [], reminders: [], audit_logs: [],
     });
 
     const backup = store.exportBusinessData();
+    store.close();
     assert.deepEqual(Object.keys(backup), [
       'settings', 'products', 'inquiries', 'customers', 'reminders', 'audit_logs',
     ]);
     assert.deepEqual(backup.settings, [{ key: 'site_name', value: 'YaoHai' }]);
+    assert.deepEqual(backup.products, [{ id: 'product-1', name: 'Starter' }]);
     assert.equal(JSON.stringify(backup).includes('credential-value'), false);
-    store.close();
+    assert.equal(JSON.stringify(backup).includes('secret'), false);
+    assert.equal(JSON.stringify(backup).includes('do-not-export'), false);
   });
 });
 

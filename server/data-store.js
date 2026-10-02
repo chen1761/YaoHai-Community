@@ -9,7 +9,16 @@ export const BUSINESS_COLLECTIONS = Object.freeze([
   'settings', 'products', 'inquiries', 'customers', 'reminders', 'audit_logs',
 ]);
 
-const SENSITIVE_SETTING = /(?:api[_-]?key|encrypted|cipher|credential|password|session|token|secret)/i;
+const EXPORTABLE_SETTING_KEYS = new Set([
+  'theme', 'locale', 'onboardingCompleted', 'provider', 'model', 'baseUrl', 'site_name',
+]);
+const EXPORTABLE_FIELDS = Object.freeze({
+  products: ['id', 'name', 'description', 'price', 'currency', 'category', 'imageUrl', 'active'],
+  inquiries: ['id', 'customerId', 'subject', 'message', 'status', 'createdAt'],
+  customers: ['id', 'name', 'email', 'phone', 'address', 'notes'],
+  reminders: ['id', 'title', 'description', 'dueAt', 'completed'],
+  audit_logs: ['action', 'created_at', 'actor'],
+});
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
 export function createStore(dbPath) {
@@ -89,8 +98,7 @@ export function createStore(dbPath) {
     exportBusinessData() {
       return Object.fromEntries(BUSINESS_COLLECTIONS.map((collection) => [
         collection,
-        readCollection(database, collection).filter((record) =>
-          collection !== 'settings' || !SENSITIVE_SETTING.test(String(record.key ?? ''))),
+        readCollection(database, collection).flatMap((record) => projectForExport(collection, record)),
       ]));
     },
 
@@ -150,6 +158,22 @@ function readCollection(database, collection) {
   }
   return database.prepare(`SELECT data_json FROM ${collection} ORDER BY row_id`).all()
     .map(({ data_json: dataJson }) => JSON.parse(dataJson));
+}
+
+function projectForExport(collection, record) {
+  if (collection === 'settings') {
+    if (!EXPORTABLE_SETTING_KEYS.has(record.key) || !isScalar(record.value)) return [];
+    return [{ key: record.key, value: record.value }];
+  }
+
+  const fields = EXPORTABLE_FIELDS[collection];
+  return [Object.fromEntries(fields
+    .filter((field) => Object.hasOwn(record, field))
+    .map((field) => [field, record[field]]))];
+}
+
+function isScalar(value) {
+  return value === null || ['string', 'boolean', 'number'].includes(typeof value);
 }
 
 function replaceCollections(database, data) {
