@@ -27,7 +27,7 @@ test('launchers enforce Node 24, isolate community paths, and wait for health', 
     assert.match(source, /backups/);
     assert.match(source, /uploads/);
     assert.match(source, /api\/health/);
-    assert.match(source, /localhost/);
+    assert.match(source, /127\.0\.0\.1/);
   }
   assert.match(bat, /start-community\.ps1/);
   assert.match(ps, /Start-Process/);
@@ -45,7 +45,7 @@ test('release check and CI are offline-safe and scan release boundaries', () => 
   const ci = read('.github/workflows/ci.yml');
   assert.match(ci, /node-version:\s*\[?['"]?24/);
   assert.match(ci, /npm run release:check/);
-  assert.match(ci, /--offline/);
+  assert.doesNotMatch(ci, /npm install|npm ci|--offline/);
 });
 
 test('public documentation defines setup, secrets, recovery, boundaries, and Apache license', () => {

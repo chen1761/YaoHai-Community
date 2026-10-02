@@ -1,0 +1,5 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { isForbiddenTrackedPath, scanText } from '../tools/release-policy.mjs';
+test('release path policy rejects runtime and commercial artifacts but keeps the template', () => { for (const path of ['.env', '.env.local', 'db/app.sqlite', 'data/runtime.db', 'upload/a.txt', 'uploads/a.txt', 'service/x.js', 'service-tools/x.js', 'license/index.ts', 'license.js', 'generator/index.mjs']) assert.equal(isForbiddenTrackedPath(path), true, path); for (const path of ['.env.example', 'LICENSE', 'data/.gitkeep', 'README.md', 'docs/guide.md', 'tools/release-check.mjs', 'public/index.html']) assert.equal(isForbiddenTrackedPath(path), false, path); });
+test('tracked scan catches forbidden content outside server and public', () => { assert.equal(scanText('const route = "/api/admin/users";', 'docs/example.md').length, 1); assert.equal(scanText('-----BEGIN PRIVATE KEY-----', 'README.md').length, 1); assert.equal(scanText('APP_MASTER_PASSWORD', 'tests/repository-policy.js').length, 0); }); // policy-fixture

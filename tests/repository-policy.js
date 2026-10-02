@@ -8,6 +8,8 @@ const lineExemptions = new Map([
   ['tests/isolation.test.js', 'policy-fixture'],
   ['tests/secrets.test.js', 'policy-fixture'],
   ['tests/repository-policy.js', 'policy-rule'],
+  ['tools/release-policy.mjs', 'policy-rule'],
+  ['tests/release-policy.test.js', 'policy-fixture'],
 ]);
 
 const forbiddenPatterns = [
