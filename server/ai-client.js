@@ -7,10 +7,10 @@ export function normalizeBaseUrl(input) {
   url.pathname = url.pathname.replace(/\/{2,}/g, '/').replace(/\/$/, '') || '/';
   return url.origin + url.pathname;
 }
-export function isAllowedBaseUrl(input) { try { const u = new URL(normalizeBaseUrl(input)); return u.protocol === 'https:' && DEFAULT_HOSTS.has(u.hostname); } catch { return false; } }
+export function isAllowedBaseUrl(input) { try { const u = new URL(normalizeBaseUrl(input)); return u.protocol === 'https:' && DEFAULT_HOSTS.has(u.hostname) && u.port === ''; } catch { return false; } }
 export async function validateProviderUrl(input) {
   const normalized = normalizeBaseUrl(input); const u = new URL(normalized);
-  if (!DEFAULT_HOSTS.has(u.hostname)) throw new TypeError('Custom HTTPS providers are not supported until DNS pinning is available; use DeepSeek or OpenAI');
+  if (u.protocol !== 'https:' || u.port !== '' || !DEFAULT_HOSTS.has(u.hostname)) throw new TypeError('Only the default HTTPS provider origins on port 443 are supported');
   return normalized;
 }
 function unsafe(address) { const v = address.toLowerCase().replace(/^\[|\]$/g, ''); if (v === 'localhost' || v === '::' || v === '::1' || v === '0.0.0.0') return true; if (v.includes(':')) return v.startsWith('fe8') || v.startsWith('fe9') || v.startsWith('fea') || v.startsWith('feb') || v.startsWith('fc') || v.startsWith('fd') || v.startsWith('ff'); const [a,b] = v.split('.').map(Number); return a === 0 || a === 10 || a === 127 || a >= 224 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168); }

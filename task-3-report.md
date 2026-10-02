@@ -34,6 +34,22 @@
 
 Verification: `npm run check` and `npm test` passed; 30 tests passed.
 
+## Fix Round 3
+
+- `validateProviderUrl` and `isAllowedBaseUrl` now both require HTTPS, `api.deepseek.com` or `api.openai.com`, and an empty normalized port.
+- Non-standard ports such as `8443` and `9443` are rejected; explicit HTTPS `:443` normalizes to the default origin.
+- The supported surface is limited to the two default HTTPS provider origins, with no custom host or port support.
+
+Verification: `npm run check` and `npm test` passed after the fix.
+
+## Fix Round 3
+
+- Both provider URL checks now require `https:`, the exact `api.deepseek.com` or `api.openai.com` hostname, and an empty normalized port.
+- Non-standard ports including `8443` and `9443` are rejected; explicit `:443` is accepted and normalized away.
+- The supported surface is explicitly limited to the two default HTTPS origins with no custom host or port support.
+
+Verification: `npm run check` and `npm test` passed; 31 tests passed.
+
 ## Fix Round 2
 
 - Closed the DNS check/use resolution drift by removing the unsupported custom-host path entirely.

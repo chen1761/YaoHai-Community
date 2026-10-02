@@ -5,7 +5,8 @@ import { analyzeInquiry, isAllowedBaseUrl, validateProviderUrl } from '../server
 test('provider URLs allow defaults and reject SSRF targets', () => {
   assert.equal(isAllowedBaseUrl('https://api.deepseek.com'), true);
   assert.equal(isAllowedBaseUrl('https://api.openai.com/v1'), true);
-  for (const url of ['http://localhost:3000', 'http://127.0.0.1:8080', 'http://169.254.169.254', 'http://10.0.0.1', 'http://224.0.0.1', 'https://[::1]']) assert.equal(isAllowedBaseUrl(url), false);
+  assert.equal(isAllowedBaseUrl('https://api.openai.com:443'), true);
+  for (const url of ['http://localhost:3000', 'http://127.0.0.1:8080', 'http://169.254.169.254', 'http://10.0.0.1', 'http://224.0.0.1', 'https://[::1]', 'https://api.openai.com:8443', 'https://api.deepseek.com:9443']) assert.equal(isAllowedBaseUrl(url), false);
 });
 
 test('AI client validates JSON schema and redacts upstream errors', async () => {
@@ -22,8 +23,14 @@ test('unconfigured AI has actionable error', async () => {
 });
 
 test('custom hosts are rejected until DNS pinning is available', async () => {
-  await assert.rejects(() => validateProviderUrl('https://model.example/v1'), /Custom HTTPS providers are not supported/);
+  await assert.rejects(() => validateProviderUrl('https://model.example/v1'), /default HTTPS provider origins/);
   await assert.rejects(() => validateProviderUrl('https://user:pass@model.example/?token=x'), /clean HTTPS/);
+});
+
+test('provider validation rejects non-standard ports', async () => {
+  await assert.rejects(() => validateProviderUrl('https://api.openai.com:8443'), /port 443/);
+  await assert.rejects(() => validateProviderUrl('https://api.deepseek.com:9443'), /port 443/);
+  assert.equal(await validateProviderUrl('https://api.openai.com:443/v1'), 'https://api.openai.com/v1');
 });
 
 test('analysis rejects malformed exact contract and redirects', async () => {
