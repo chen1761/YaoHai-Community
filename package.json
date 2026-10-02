@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check server/app.js && node --check server/auth.js && node --check server/data-store.js && node --check server/routes/auth.js && node --check server/routes/backups.js && node --check server/routes/settings.js && node --check server/routes/_business.js && node --check server/routes/products.js && node --check server/routes/inquiries.js && node --check server/routes/customers.js && node --check server/routes/reminders.js && node --check server/secret-store.js && node --check server/ai-client.js && node --check public/script.js && node --check tests/repository-policy.js && node --check tests/isolation.test.js && node --check tests/secrets.test.js && node --check tests/data-store.test.js && node --check tests/auth.test.js && node --check tests/ai-client.test.js && node --check tests/settings.test.js && node --check tests/workflow.test.js && node --check tests/ui-contract.test.js",
+    "start": "powershell -ExecutionPolicy Bypass -File ./start-community.ps1",
+    "release:check": "node tools/release-check.mjs",
+    "check": "node --check server/app.js && node --check server/auth.js && node --check server/data-store.js && node --check server/routes/auth.js && node --check server/routes/backups.js && node --check server/routes/settings.js && node --check server/routes/_business.js && node --check server/routes/products.js && node --check server/routes/inquiries.js && node --check server/routes/customers.js && node --check server/routes/reminders.js && node --check server/secret-store.js && node --check server/ai-client.js && node --check public/script.js && node --check tools/release-check.mjs && node --check tests/repository-policy.js && node --check tests/isolation.test.js && node --check tests/secrets.test.js && node --check tests/data-store.test.js && node --check tests/auth.test.js && node --check tests/ai-client.test.js && node --check tests/settings.test.js && node --check tests/workflow.test.js && node --check tests/ui-contract.test.js && node --check tests/task6.test.js",
     "test": "node --test"
   },
   "engines": {
