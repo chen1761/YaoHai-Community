@@ -33,3 +33,12 @@
 - Added fail-closed missing-key, atomic failed-save, AES-GCM tamper, private DNS, URL credential/query, normalization, and redirect tests.
 
 Verification: `npm run check` and `npm test` passed; 30 tests passed.
+
+## Fix Round 2
+
+- Closed the DNS check/use resolution drift by removing the unsupported custom-host path entirely.
+- Only normalized HTTPS paths on the explicit `api.deepseek.com` and `api.openai.com` origins are accepted; custom HTTPS settings fail closed with an actionable error.
+- Kept manual redirect handling, so provider responses cannot silently redirect to another host.
+- Added regression coverage for custom-host rejection and retained the I-2/I-3 URL and exact-schema tests.
+
+Verification: `npm run check` and `npm test` passed; 30 tests passed.

@@ -21,11 +21,9 @@ test('unconfigured AI has actionable error', async () => {
   await assert.rejects(() => analyzeInquiry({ inquiry: 'x', products: [], config: null }), /configure.*AI|AI.*config/i);
 });
 
-test('custom hosts are resolved and unsafe addresses are rejected', async () => {
-  const lookup = async () => [{ address: '10.0.0.2' }];
-  await assert.rejects(() => validateProviderUrl('https://model.example/v1', lookup), /unsafe/);
-  await assert.rejects(() => validateProviderUrl('https://user:pass@model.example/?token=x', lookup), /clean HTTPS/);
-  assert.equal(await validateProviderUrl('https://model.example//v1/', async () => [{ address: '93.184.216.34' }]), 'https://model.example/v1');
+test('custom hosts are rejected until DNS pinning is available', async () => {
+  await assert.rejects(() => validateProviderUrl('https://model.example/v1'), /Custom HTTPS providers are not supported/);
+  await assert.rejects(() => validateProviderUrl('https://user:pass@model.example/?token=x'), /clean HTTPS/);
 });
 
 test('analysis rejects malformed exact contract and redirects', async () => {

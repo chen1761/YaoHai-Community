@@ -21,7 +21,7 @@ export async function saveProviderConfig(input) {
   const { provider, apiKey, model, baseUrl } = input ?? {};
   if (Object.keys(input ?? {}).some(key => !['provider','apiKey','model','baseUrl','store','lookupImpl'].includes(key)) || !['openai','deepseek'].includes(provider) || typeof apiKey !== 'string' || !apiKey || typeof model !== 'string' || !model) throw new TypeError('invalid provider configuration');
   const store = input.store; if (!store) throw new TypeError('store is required');
-  const normalized = await validateProviderUrl(baseUrl, input.lookupImpl);
+  const normalized = await validateProviderUrl(baseUrl);
   store.setInternalSetting('ai_provider_config', { provider, model, baseUrl: normalizeBaseUrl(normalized), encryptedApiKey: encrypt(apiKey) });
   return store.getPublicProviderConfig();
 }
