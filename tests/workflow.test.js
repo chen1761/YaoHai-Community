@@ -14,7 +14,8 @@ test('schemas reject invalid types and dates', () => {
 
 test('HTTP workflow authenticates CRUD and CSV imports transactionally', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'yaohai-workflow-'));
-  const server = createApp({ dbPath: join(dir, 'db.sqlite') }); server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const analysis = { intent: 'quote', buyer: { name: 'Buyer' }, risks: [], missingFields: [], readiness: 'ready', recommendedProducts: [], replyDraft: 'reply', followUpDraft: 'follow' };
+  const server = createApp({ dbPath: join(dir, 'db.sqlite'), aiConfig: { provider: 'openai', model: 'test', baseUrl: 'https://api.openai.com', apiKey: 'test', fetchImpl: async () => ({ ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify(analysis) } }] }) }) } }); server.listen(0, '127.0.0.1'); await once(server, 'listening');
   try {
     const base = `http://127.0.0.1:${server.address().port}`;
     const json = (url, method, body, cookie) => fetch(base + url, { method, headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -26,6 +27,9 @@ test('HTTP workflow authenticates CRUD and CSV imports transactionally', async (
     const imported = await json('/api/products/import', 'POST', { csv: 'sku,name,description,price,currency,category,imageUrl,active\nSKU-2,Good,,, , , ,true' }, cookie); assert.equal(imported.status, 201);
     assert.equal((await json('/api/products/nope', 'GET', undefined, cookie)).status, 404);
     assert.equal((await json('/api/inquiries/deadbeef/analyze', 'POST', {}, cookie)).status, 404);
+    const inquiry = await json('/api/inquiries', 'POST', { subject: 'Quote', message: 'Need pricing' }, cookie); assert.equal(inquiry.status, 201); const inquiryId = (await inquiry.json()).id;
+    assert.equal((await json('/api/inquiries/' + inquiryId + '/analyze', 'POST', {}, cookie)).status, 200);
+    assert.equal((await json('/api/inquiries/' + inquiryId + '/confirm-lead', 'POST', { approved: true, edits: { name: 'Edited Buyer' } }, cookie)).status, 201);
     assert.equal((await json('/api/products/' + (await product.json()).id, 'DELETE', undefined, cookie)).status, 204);
   } finally { server.close(); await once(server, 'close'); rmSync(dir, { recursive: true, force: true }); }
 });

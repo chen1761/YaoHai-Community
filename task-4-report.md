@@ -23,3 +23,10 @@ Verification: `npm run check` and `npm test` passed; 33 tests passed.
 - Added an HTTP regression test for malformed inquiry analysis action IDs.
 
 Verification: `npm run check` and `npm test` passed after the fix.
+
+## Fix Round 3
+
+- Exported UUID as an unanchored pattern source, added explicit full-value anchoring for standalone validation, and used the unanchored source inside the anchored inquiry action URL pattern.
+- Added test-only AI configuration injection and real HTTP assertions proving legal inquiry analyze and approved confirm-lead actions reach their handlers, while malformed `deadbeef` remains 404.
+
+Verification: `npm run check` and `npm test` passed after the fix.

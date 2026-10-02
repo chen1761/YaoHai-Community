@@ -15,7 +15,7 @@ const MAX_BODY_BYTES = 10 * 1024 * 1024;
 
 export function createApp(options = {}) {
   const store = options.store ?? createStore(options.dbPath ?? join('data', 'community.sqlite'));
-  const context = { store, readJson, sendJson };
+  const context = { store, readJson, sendJson, aiConfig: options.aiConfig };
 
   const server = createServer(async (request, response) => {
     try {
