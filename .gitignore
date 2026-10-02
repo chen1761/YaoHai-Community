@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.*
+!.env.example
+data/*
+!data/.gitkeep
+uploads/*
+backups/*
+*.sqlite*
+*.log
+logs/
+coverage/

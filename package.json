@@ -1,0 +1,13 @@
+{
+  "name": "yaohai-community",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check server/app.js && node --check tests/isolation.test.js && node --check tests/secrets.test.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
