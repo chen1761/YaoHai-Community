@@ -24,6 +24,14 @@ Verification: `npm run check` and `npm test` passed; 33 tests passed.
 
 Verification: `npm run check` and `npm test` passed after the fix.
 
+## Fix Round 4
+
+- Split UUID handling into unanchored `UUID_SOURCE` for action-path composition and anchored `UUID`/`isUuid(value)` for complete ID validation.
+- CRUD and schema validation now use `isUuid`; inquiry actions use only the anchored outer URL pattern with `UUID_SOURCE`.
+- Added HTTP regressions for product and inquiry UUID-prefix injection, while preserving successful legal analyze and confirm-lead actions.
+
+Verification: `npm run check` and `npm test` passed after the fix.
+
 ## Fix Round 3
 
 - Exported UUID as an unanchored pattern source, added explicit full-value anchoring for standalone validation, and used the unanchored source inside the anchored inquiry action URL pattern.

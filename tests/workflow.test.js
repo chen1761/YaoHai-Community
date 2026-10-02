@@ -26,10 +26,13 @@ test('HTTP workflow authenticates CRUD and CSV imports transactionally', async (
     const bad = await json('/api/products/import', 'POST', { csv: 'sku,name,description,price,currency,category,imageUrl,active\nSKU-2,Good,,,,' }, cookie); assert.equal(bad.status, 400);
     const imported = await json('/api/products/import', 'POST', { csv: 'sku,name,description,price,currency,category,imageUrl,active\nSKU-2,Good,,, , , ,true' }, cookie); assert.equal(imported.status, 201);
     assert.equal((await json('/api/products/nope', 'GET', undefined, cookie)).status, 404);
+    const productId = (await fetch(base + '/api/products', { headers: { cookie } }).then((response) => response.json()))[0].id;
+    assert.equal((await json('/api/products/x' + productId, 'GET', undefined, cookie)).status, 404);
     assert.equal((await json('/api/inquiries/deadbeef/analyze', 'POST', {}, cookie)).status, 404);
     const inquiry = await json('/api/inquiries', 'POST', { subject: 'Quote', message: 'Need pricing' }, cookie); assert.equal(inquiry.status, 201); const inquiryId = (await inquiry.json()).id;
     assert.equal((await json('/api/inquiries/' + inquiryId + '/analyze', 'POST', {}, cookie)).status, 200);
     assert.equal((await json('/api/inquiries/' + inquiryId + '/confirm-lead', 'POST', { approved: true, edits: { name: 'Edited Buyer' } }, cookie)).status, 201);
+    assert.equal((await json('/api/inquiries/x' + inquiryId + '/analyze', 'POST', {}, cookie)).status, 404);
     assert.equal((await json('/api/products/' + (await product.json()).id, 'DELETE', undefined, cookie)).status, 204);
   } finally { server.close(); await once(server, 'close'); rmSync(dir, { recursive: true, force: true }); }
 });
