@@ -12,7 +12,7 @@ AI 设置由企业自备模型 API Key；Windows 优先使用当前用户 DPAPI 
 
 运行数据在 `data/community.sqlite`，备份在 `data/backups`，上传文件在 `data/uploads`。通过设置页导出并导入备份；恢复前停止写入并保留原文件副本。生产数据不得提交 Git 或进入发布包。
 
-发布前可设置 `REQUIRE_SECRET_REVOCATION=1` 启用旧密钥撤销门禁，并通过 `YH_SECRET_REVOCATION_EVIDENCE` 指向真实的供应商控制台证据 JSON（包含 `status: "revoked"`、`provider`、`revokedAt`、`evidenceUrl`）。检查器只验证证据存在和格式，不伪造或声称已撤销；未提供真实证据时发布检查会失败。
+发布前必须先在供应商控制台撤销此前暴露的旧 key，再通过 `YH_SECRET_REVOCATION_EVIDENCE` 指向真实的供应商控制台证据 JSON（包含 `status: "revoked"`、`provider`、`revokedAt`、`evidenceUrl`）。`npm run release:check` 默认强制此门禁，CI 永远强制；未提供真实证据时必须失败。检查器只验证证据存在和格式，不伪造或声称已撤销。仅非 CI 的本地开发可明确设置 `RELEASE_DEV_BYPASS=1` 临时跳过，生产环境和 CI 不接受该 bypass。
 
 ## 故障处理
 

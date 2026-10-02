@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { requireSecretRevocationEvidence } from '../tools/release-check.mjs';
 
 const root = join(import.meta.dirname, '..');
 const read = (file) => readFileSync(join(root, file), 'utf8');
@@ -59,4 +62,19 @@ test('public documentation defines setup, secrets, recovery, boundaries, and Apa
   assert.match(read('NOTICE.md'), /Apache License/);
   assert.match(read('LICENSE'), /Apache License, Version 2\.0/);
   assert.match(read('docs/COMMERCIAL-SEPARATION.md'), /community|社区/i);
+});
+
+test('release requires real revocation evidence by default and accepts valid evidence', async () => {
+  assert.throws(() => requireSecretRevocationEvidence({}), /evidence is required/);
+  const directory = await mkdtemp(join(tmpdir(), 'yaohai-evidence-'));
+  const evidencePath = join(directory, 'revocation.json');
+  await writeFile(evidencePath, JSON.stringify({ status: 'revoked', provider: 'DeepSeek', revokedAt: '2026-10-02T00:00:00Z', evidenceUrl: 'https://provider.example/evidence/123' }));
+  assert.doesNotThrow(() => requireSecretRevocationEvidence({ YH_SECRET_REVOCATION_EVIDENCE: evidencePath }));
+  await rm(directory, { recursive: true, force: true });
+});
+
+test('release bypass is local-only and cannot disable CI enforcement', () => {
+  assert.doesNotThrow(() => requireSecretRevocationEvidence({ RELEASE_DEV_BYPASS: '1', NODE_ENV: 'development' }));
+  assert.throws(() => requireSecretRevocationEvidence({ RELEASE_DEV_BYPASS: '1', NODE_ENV: 'development', CI: '1' }), /evidence is required/);
+  assert.throws(() => requireSecretRevocationEvidence({ RELEASE_DEV_BYPASS: '1', NODE_ENV: 'production' }), /evidence is required/);
 });

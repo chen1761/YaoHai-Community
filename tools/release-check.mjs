@@ -117,13 +117,18 @@ async function runSmokeTest() {
   }
 }
 
-function requireSecretRevocationEvidence() {
-  if (!/^(?:1|true|yes)$/i.test(process.env.REQUIRE_SECRET_REVOCATION ?? '')) return;
-  const evidencePath = process.env.YH_SECRET_REVOCATION_EVIDENCE;
-  if (!evidencePath || !existsSync(evidencePath)) throw new Error('REQUIRE_SECRET_REVOCATION is enabled; provide YH_SECRET_REVOCATION_EVIDENCE with real provider-console evidence.');
+export function requireSecretRevocationEvidence(environment = process.env) {
+  const isCi = /^(?:1|true|yes)$/i.test(environment.CI ?? '') || /^(?:1|true|yes)$/i.test(environment.GITHUB_ACTIONS ?? '');
+  const isLocalDevelopment = !isCi && environment.NODE_ENV !== 'production' && environment.NODE_ENV !== 'test';
+  if (environment.RELEASE_DEV_BYPASS === '1' && isLocalDevelopment) {
+    console.log('Secret revocation evidence bypassed for local development only.');
+    return;
+  }
+  const evidencePath = environment.YH_SECRET_REVOCATION_EVIDENCE;
+  if (!evidencePath || !existsSync(evidencePath)) throw new Error('Secret revocation evidence is required; first revoke previously exposed keys in the provider console, then provide YH_SECRET_REVOCATION_EVIDENCE with real evidence JSON.');
   let evidence;
   try { evidence = JSON.parse(readFileSync(evidencePath, 'utf8')); } catch { throw new Error('Secret revocation evidence must be valid JSON.'); }
-  if (evidence.status !== 'revoked' || typeof evidence.provider !== 'string' || typeof evidence.revokedAt !== 'string' || typeof evidence.evidenceUrl !== 'string') throw new Error('Secret revocation evidence must document provider, revokedAt, evidenceUrl, and status=revoked.');
+  if (evidence.status !== 'revoked' || typeof evidence.provider !== 'string' || typeof evidence.revokedAt !== 'string' || typeof evidence.evidenceUrl !== 'string') throw new Error('Secret revocation evidence must document provider, revokedAt, evidenceUrl, and status=revoked. Do not fabricate evidence.');
   console.log(`Secret revocation evidence supplied for ${evidence.provider}; no revocation is fabricated by this check.`);
 }
 

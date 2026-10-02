@@ -22,5 +22,11 @@ Verification: `npm run check && npm test && npm run release:check` passed; 43 te
 - Implemented Windows DPAPI-first AI secret storage with an explicit `YH_COMMUNITY_SECRET_KEY` fallback and `configuration_required` responses for missing configuration.
 - Enforced analyze-before-confirm, confirmation idempotency, persisted inquiry `customerId`, complete safe business backup roundtrips, malicious restore rejection, and AI-config preservation.
 - Completed product/customer CRUD, CSV import/export, CSV error details, 404 reads, audit coverage, and single-path browser event handling.
-- Added lockfile-backed full `npm audit`, release-artifact scans including untracked files, Git history secret scans, and the opt-in `REQUIRE_SECRET_REVOCATION` evidence gate. The gate validates supplied provider evidence and never fabricates revocation.
-- Added end-to-end tests for unconfigured AI, no-analysis/duplicate confirmation, backup roundtrip, malicious restore, CRUD/export, untracked release artifacts, history scanning, and audit events.
+- Added lockfile-backed full `npm audit`, release-artifact scans including untracked files, Git history secret scans, and the default-enforced `YH_SECRET_REVOCATION_EVIDENCE` gate. The gate validates supplied provider evidence and never fabricates revocation.
+- Added end-to-end tests for unconfigured AI, no-analysis/duplicate confirmation, backup roundtrip, malicious restore, CRUD/export, untracked release artifacts, history scanning, audit events, and the mandatory old-key revocation evidence gate.
+
+## SC-I9 Fix
+
+- `npm run release:check` now requires `YH_SECRET_REVOCATION_EVIDENCE` by default and in CI. Before publishing, revoke every previously exposed old key in the provider console and provide real evidence JSON; do not fabricate evidence.
+- `RELEASE_DEV_BYPASS=1` is accepted only for non-CI local development and is rejected in production and CI.
+- Added tests for default missing-evidence failure, valid evidence success, and local-only bypass behavior.
