@@ -5,6 +5,10 @@ import { createStore } from './data-store.js';
 import { handleAuthRoute } from './routes/auth.js';
 import { handleBackupRoute } from './routes/backups.js';
 import { handleSettingsRoute } from './routes/settings.js';
+import { handleProductRoute } from './routes/products.js';
+import { handleInquiryRoute } from './routes/inquiries.js';
+import { handleCustomerRoute } from './routes/customers.js';
+import { handleReminderRoute } from './routes/reminders.js';
 
 const jsonHeaders = { 'content-type': 'application/json; charset=utf-8' };
 const MAX_BODY_BYTES = 10 * 1024 * 1024;
@@ -22,6 +26,10 @@ export function createApp(options = {}) {
       if (await handleAuthRoute(request, response, context)) return;
       if (await handleBackupRoute(request, response, context)) return;
       if (await handleSettingsRoute(request, response, context)) return;
+      if (await handleProductRoute(request, response, context)) return;
+      if (await handleInquiryRoute(request, response, context)) return;
+      if (await handleCustomerRoute(request, response, context)) return;
+      if (await handleReminderRoute(request, response, context)) return;
       sendJson(response, 404, { error: 'not_found' });
     } catch (error) {
       if (response.headersSent) {

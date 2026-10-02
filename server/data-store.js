@@ -47,6 +47,12 @@ export function createStore(dbPath) {
   `);
 
   const store = {
+    list(collection) { return readCollection(database, collection); },
+    create(collection, record) { insertRecord(database, collection, record); return record; },
+    update(collection, id, record) { const row = database.prepare(`SELECT row_id FROM ${collection} WHERE json_extract(data_json, '$.id') = ?`).get(id); if (!row) return null; database.prepare(`UPDATE ${collection} SET data_json = ? WHERE row_id = ?`).run(JSON.stringify(record), row.row_id); return record; },
+    remove(collection, id) { return database.prepare(`DELETE FROM ${collection} WHERE json_extract(data_json, '$.id') = ?`).run(id).changes > 0; },
+    audit(action, details = {}) { insertRecord(database, 'audit_logs', { action, created_at: new Date().toISOString(), ...details }); },
+    transaction(action) { return inTransaction(database, action); },
     setInternalSetting(key, value) {
       database.prepare('INSERT INTO settings (key, value_json) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json').run(key, JSON.stringify(value));
     },

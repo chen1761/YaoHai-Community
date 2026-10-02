@@ -7,14 +7,14 @@ export async function handleAuthRoute(request, response, context) {
   if (request.method === 'POST' && pathname === '/api/setup') {
     const body = await context.readJson(request);
     const created = await context.store.createOwner(body.username, body.password);
-    if (!created) return context.sendJson(response, 409, { error: 'already_configured' });
+    if (!created) { context.store.audit('setup_failure'); return context.sendJson(response, 409, { error: 'already_configured' }); }
     return context.sendJson(response, 201, { ok: true });
   }
 
   if (request.method === 'POST' && pathname === '/api/auth/login') {
     const body = await context.readJson(request);
     const session = await context.store.authenticate(body.username, body.password);
-    if (!session) return context.sendJson(response, 401, { error: 'invalid_credentials' });
+    if (!session) { context.store.audit('login_failure'); return context.sendJson(response, 401, { error: 'invalid_credentials' }); }
     response.setHeader('set-cookie', serializeSessionCookie(session.sessionId));
     return context.sendJson(response, 200, { ok: true });
   }

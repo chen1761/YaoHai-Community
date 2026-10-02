@@ -14,5 +14,6 @@ export async function handleBackupRoute(request, response, context) {
 
   const backup = await context.readJson(request);
   context.store.restoreBusinessData(backup);
+  context.store.audit('backup');
   return context.sendJson(response, 200, { ok: true });
 }
