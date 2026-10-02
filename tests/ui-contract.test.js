@@ -49,3 +49,13 @@ test('UI exposes complete recovery and dialog contracts', async () => {
   assert.match(app, /relative\(PUBLIC_ROOT, file\)/);
   assert.match(app, /isAbsolute\(fromRoot\)/);
 });
+
+test('workspace navigation and reminder deletion use recoverable async boundaries', async () => {
+  const script = await load('script.js');
+  assert.match(script, /data-go.*await retryRender/s);
+  assert.match(script, /nav a.*await retryRender/s);
+  assert.match(script, /hashchange.*retryRender/);
+  assert.match(script, /onboarding\.classList\.add\('hidden'\); await retryRender\(\)/);
+  assert.match(script, /data-delete-reminder[\s\S]*try[\s\S]*catch[\s\S]*finally/);
+  assert.match(script, /提醒删除失败，请重试/);
+});
