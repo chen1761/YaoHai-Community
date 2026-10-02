@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
-import { isAllowedBaseUrl } from './ai-client.js';
+import { normalizeBaseUrl, validateProviderUrl } from './ai-client.js';
 
 function keyFromEnv() {
   const source = process.env.YH_COMMUNITY_SECRET_KEY;
@@ -19,9 +19,10 @@ function decrypt(value) {
 
 export async function saveProviderConfig(input) {
   const { provider, apiKey, model, baseUrl } = input ?? {};
-  if (Object.keys(input ?? {}).some(key => !['provider','apiKey','model','baseUrl','store'].includes(key)) || !['openai','deepseek'].includes(provider) || typeof apiKey !== 'string' || !apiKey || typeof model !== 'string' || !model || !isAllowedBaseUrl(baseUrl)) throw new TypeError('invalid provider configuration');
+  if (Object.keys(input ?? {}).some(key => !['provider','apiKey','model','baseUrl','store','lookupImpl'].includes(key)) || !['openai','deepseek'].includes(provider) || typeof apiKey !== 'string' || !apiKey || typeof model !== 'string' || !model) throw new TypeError('invalid provider configuration');
   const store = input.store; if (!store) throw new TypeError('store is required');
-  store.setInternalSetting('ai_provider_config', { provider, model, baseUrl, encryptedApiKey: encrypt(apiKey) });
+  const normalized = await validateProviderUrl(baseUrl, input.lookupImpl);
+  store.setInternalSetting('ai_provider_config', { provider, model, baseUrl: normalizeBaseUrl(normalized), encryptedApiKey: encrypt(apiKey) });
   return store.getPublicProviderConfig();
 }
 

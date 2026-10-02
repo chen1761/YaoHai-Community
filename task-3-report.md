@@ -24,3 +24,12 @@
 ## Remaining Attention
 
 - Windows DPAPI is not wired in this minimal cross-platform implementation; production Windows deployment should add a native DPAPI-backed key provider while retaining the current fail-closed behavior.
+
+## Fix Round 1
+
+- Custom HTTPS hosts are resolved with all IPv4/IPv6 results checked for loopback, link-local, private, multicast, and unspecified ranges. Requests use `redirect: manual`.
+- Provider URLs reject credentials, query strings, and fragments, and are normalized before persistence and public return.
+- Analysis output now requires exact top-level keys and strict scalar/array/object shapes for all eight fields.
+- Added fail-closed missing-key, atomic failed-save, AES-GCM tamper, private DNS, URL credential/query, normalization, and redirect tests.
+
+Verification: `npm run check` and `npm test` passed; 30 tests passed.

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analyzeInquiry, isAllowedBaseUrl } from '../server/ai-client.js';
+import { analyzeInquiry, isAllowedBaseUrl, validateProviderUrl } from '../server/ai-client.js';
 
 test('provider URLs allow defaults and reject SSRF targets', () => {
   assert.equal(isAllowedBaseUrl('https://api.deepseek.com'), true);
@@ -19,4 +19,17 @@ test('AI client validates JSON schema and redacts upstream errors', async () => 
 
 test('unconfigured AI has actionable error', async () => {
   await assert.rejects(() => analyzeInquiry({ inquiry: 'x', products: [], config: null }), /configure.*AI|AI.*config/i);
+});
+
+test('custom hosts are resolved and unsafe addresses are rejected', async () => {
+  const lookup = async () => [{ address: '10.0.0.2' }];
+  await assert.rejects(() => validateProviderUrl('https://model.example/v1', lookup), /unsafe/);
+  await assert.rejects(() => validateProviderUrl('https://user:pass@model.example/?token=x', lookup), /clean HTTPS/);
+  assert.equal(await validateProviderUrl('https://model.example//v1/', async () => [{ address: '93.184.216.34' }]), 'https://model.example/v1');
+});
+
+test('analysis rejects malformed exact contract and redirects', async () => {
+  const base = { intent: 'x', buyer: {}, risks: [], missingFields: [], readiness: 'x', recommendedProducts: [], replyDraft: 'x', followUpDraft: 'x' };
+  await assert.rejects(() => analyzeInquiry({ inquiry: 'x', products: [], config: { apiKey: 'k', model: 'm', baseUrl: 'https://api.openai.com', fetchImpl: async () => ({ ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({ ...base, risks: [null] }) } }] }) }) } }), /schema/);
+  await assert.rejects(() => analyzeInquiry({ inquiry: 'x', products: [], config: { apiKey: 'k', model: 'm', baseUrl: 'https://api.openai.com', fetchImpl: async (_url, options) => { assert.equal(options.redirect, 'manual'); return { status: 302, ok: false }; } } }), /redirect/);
 });
