@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check server/app.js && node --check tests/repository-policy.js && node --check tests/isolation.test.js && node --check tests/secrets.test.js",
+    "check": "node --check server/app.js && node --check server/auth.js && node --check server/data-store.js && node --check server/routes/auth.js && node --check server/routes/backups.js && node --check tests/repository-policy.js && node --check tests/isolation.test.js && node --check tests/secrets.test.js && node --check tests/data-store.test.js && node --check tests/auth.test.js",
     "test": "node --test"
   },
   "engines": {
