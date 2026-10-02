@@ -167,13 +167,37 @@ function projectForExport(collection, record) {
   }
 
   const fields = EXPORTABLE_FIELDS[collection];
-  return [Object.fromEntries(fields
-    .filter((field) => Object.hasOwn(record, field))
-    .map((field) => [field, record[field]]))];
+  return [Object.fromEntries(fields.flatMap((field) => {
+    if (!Object.hasOwn(record, field)) return [];
+    const value = sanitizeExportValue(record[field]);
+    return value === undefined ? [] : [[field, value]];
+  }))];
 }
 
 function isScalar(value) {
   return value === null || ['string', 'boolean', 'number'].includes(typeof value);
+}
+
+function sanitizeExportValue(value) {
+  if (isScalar(value)) return value;
+  if (Array.isArray(value)) {
+    return value.every(isScalar) ? value : undefined;
+  }
+  if (value && typeof value === 'object') {
+    // Inspect nested keys before rejecting the whole complex field.
+    if (containsSensitiveKey(value)) return undefined;
+    return undefined;
+  }
+  return undefined;
+}
+
+function containsSensitiveKey(value) {
+  if (!value || typeof value !== 'object') return false;
+  return Object.entries(value).some(([key, nestedValue]) => {
+    const normalizedKey = key.toLowerCase().replaceAll(/[^a-z0-9]/g, '');
+    return /^(?:apikey|encrypted|credential|password|session|token|secret)/.test(normalizedKey)
+      || containsSensitiveKey(nestedValue);
+  });
 }
 
 function replaceCollections(database, data) {

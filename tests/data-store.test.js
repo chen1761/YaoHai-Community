@@ -115,3 +115,34 @@ test('restore replaces all business collections and records an audit entry', () 
     store.close();
   });
 });
+
+test('business projection rejects nested objects and preserves only scalar arrays', async () => {
+  await withDatabase(({ dbPath }) => {
+    const store = createStore(dbPath);
+    store.replaceBusinessData({
+      settings: [],
+      products: [{
+        id: 'product-2',
+        name: 'Nested data',
+        description: { details: { api_key: 'description-secret' } },
+        category: ['home', 'featured'],
+      }],
+      inquiries: [], customers: [], reminders: [],
+      audit_logs: [{
+        action: 'viewed',
+        actor: { profile: { token: 'actor-secret' } },
+      }],
+    });
+
+    const backup = store.exportBusinessData();
+    assert.deepEqual(backup.products, [{
+      id: 'product-2',
+      name: 'Nested data',
+      category: ['home', 'featured'],
+    }]);
+    assert.deepEqual(backup.audit_logs, [{ action: 'viewed' }]);
+    assert.equal(JSON.stringify(backup).includes('description-secret'), false);
+    assert.equal(JSON.stringify(backup).includes('actor-secret'), false);
+    store.close();
+  });
+});
