@@ -38,7 +38,7 @@ test('release check and CI are offline-safe and scan release boundaries', () => 
   const release = read('tools/release-check.mjs');
   assert.match(release, /\['run', 'check'\]/);
   assert.match(release, /\['test'\]/);
-  assert.match(release, /\['audit', '--omit=dev'/);
+  assert.match(release, /\['audit', '--audit-level=high'/);
   assert.match(release, /'ls-files'/);
   assert.match(release, /\.env|\.sqlite|uploads|license/i);
   assert.match(release, /health/);

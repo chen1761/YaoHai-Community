@@ -1,6 +1,10 @@
 const DEFAULT_HOSTS = new Set(['api.deepseek.com', 'api.openai.com']);
 const KEYS = ['intent', 'buyer', 'risks', 'missingFields', 'readiness', 'recommendedProducts', 'replyDraft', 'followUpDraft'];
 
+export function configurationRequired(message = '请先在设置页配置 AI 提供商和 API Key') {
+  return Object.assign(new Error(`Configure an AI provider before analyzing inquiries；${message}`), { code: 'CONFIGURATION_REQUIRED' });
+}
+
 export function normalizeBaseUrl(input) {
   const url = new URL(input);
   if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) throw new TypeError('AI provider URL must be a clean HTTPS URL');
@@ -21,7 +25,7 @@ export function validateAnalysisResult(result) {
   return result;
 }
 export async function analyzeInquiry({ inquiry, products, signal, config, fetchImpl }) {
-  if (!config) throw new Error('Configure an AI provider before analyzing inquiries');
+  if (!config) throw configurationRequired();
   const baseUrl = await validateProviderUrl(config.baseUrl);
   try { const request = fetchImpl ?? config.fetchImpl ?? fetch; const response = await request(`${baseUrl}/chat/completions`, { method:'POST', redirect:'manual', signal, headers:{'content-type':'application/json', authorization:`Bearer ${config.apiKey}`}, body:JSON.stringify({model:config.model,messages:[{role:'user',content:JSON.stringify({inquiry,products})}],temperature:0}) }); if (response.status >= 300 && response.status < 400) throw new Error('AI provider redirect rejected'); if (!response.ok) throw new Error('upstream failure'); const payload = await response.json(); return validateAnalysisResult(JSON.parse(payload.choices?.[0]?.message?.content ?? '')); } catch (error) { if (/schema|redirect/.test(error.message)) throw error; throw new Error('AI provider request failed'); }
 }

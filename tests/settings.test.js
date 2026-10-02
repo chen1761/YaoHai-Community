@@ -28,6 +28,9 @@ test('missing key fails closed, failed save is atomic, and ciphertext tampering 
   await saveProviderConfig({ provider:'openai', apiKey:'secret', model:'m', baseUrl:'https://api.openai.com', store }); const before = store.getPublicProviderConfig();
   await assert.rejects(() => saveProviderConfig({ provider:'openai', apiKey:'new', model:'m', baseUrl:'https://user:pass@api.openai.com/?token=x', store }), /clean HTTPS/);
   assert.deepEqual(store.getPublicProviderConfig(), before);
-  const encrypted = store.getInternalSetting('ai_provider_config'); encrypted.encryptedApiKey.tag = (encrypted.encryptedApiKey.tag.startsWith('A') ? 'B' : 'A') + encrypted.encryptedApiKey.tag.slice(1); store.setInternalSetting('ai_provider_config', encrypted);
+  const encrypted = store.getInternalSetting('ai_provider_config');
+  if (encrypted.encryptedApiKey.mode === 'dpapi') encrypted.encryptedApiKey.value = encrypted.encryptedApiKey.value.slice(0, -1) + (encrypted.encryptedApiKey.value.endsWith('A') ? 'B' : 'A');
+  else encrypted.encryptedApiKey.value.tag = (encrypted.encryptedApiKey.value.tag.startsWith('A') ? 'B' : 'A') + encrypted.encryptedApiKey.value.tag.slice(1);
+  store.setInternalSetting('ai_provider_config', encrypted);
   assert.throws(() => getProviderConfig(store)); store.close(); rmSync(dir, { recursive:true, force:true }); delete process.env.YH_COMMUNITY_SECRET_KEY;
 });

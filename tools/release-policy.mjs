@@ -1,7 +1,7 @@
 import { normalize } from 'node:path';
 
 export const SCAN_EXEMPTIONS = new Set(['tests/repository-policy.js', 'tests/secrets.test.js', 'tests/isolation.test.js', 'tests/release-policy.test.js', 'tools/release-policy.mjs']);
-export const RELEASE_FILES = ['package.json', 'server', 'public', '.env.example', 'start-community.ps1', '启动曜海社区版.bat', 'README.md', 'SECURITY.md', 'BRANDING.md', 'NOTICE.md', 'LICENSE', 'docs', 'tools', '.github'];
+export const RELEASE_FILES = ['package.json', 'package-lock.json', 'server', 'public', '.env.example', 'start-community.ps1', '启动曜海社区版.bat', 'README.md', 'SECURITY.md', 'BRANDING.md', 'NOTICE.md', 'LICENSE', 'docs', 'tools', '.github'];
 const forbiddenPath = /(^|\/)(?:\.env(?:\.[^/]+)?|(?:[^/]+\.(?:db|sqlite|sqlite3|db3|wal|shm))|(?:db|data|upload|uploads|service|service-tools|license|generator)(?:\/|$)|(?:license|generator)(?:\.[^/]+)?$)/i;
 export function normalizeTrackedPath(file) { return normalize(file).replaceAll('\\', '/'); }
 export function isForbiddenTrackedPath(file) { const normalized = normalizeTrackedPath(file); return !new Set(['.env.example', 'LICENSE', 'data/.gitkeep']).has(normalized) && forbiddenPath.test(normalized); }

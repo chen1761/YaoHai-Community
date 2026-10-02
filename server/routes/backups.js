@@ -9,6 +9,7 @@ export async function handleBackupRoute(request, response, context) {
 
   if (isExport) {
     response.setHeader('content-disposition', 'attachment; filename="yaohai-backup.json"');
+    context.store.audit('backup');
     return context.sendJson(response, 200, context.store.exportBusinessData());
   }
 

@@ -13,8 +13,8 @@ const EXPORTABLE_SETTING_KEYS = new Set([
   'theme', 'locale', 'onboardingCompleted', 'provider', 'model', 'baseUrl', 'site_name',
 ]);
 const EXPORTABLE_FIELDS = Object.freeze({
-  products: ['id', 'name', 'description', 'price', 'currency', 'category', 'imageUrl', 'active'],
-  inquiries: ['id', 'customerId', 'subject', 'message', 'status', 'createdAt'],
+  products: ['id', 'sku', 'name', 'description', 'price', 'currency', 'category', 'imageUrl', 'active'],
+  inquiries: ['id', 'customerId', 'subject', 'message', 'company', 'country', 'region', 'status', 'createdAt', 'analysis', 'confirmation'],
   customers: ['id', 'name', 'email', 'phone', 'address', 'notes'],
   reminders: ['id', 'title', 'description', 'dueAt', 'completed'],
   audit_logs: ['action', 'created_at', 'actor'],
@@ -121,7 +121,7 @@ export function createStore(dbPath) {
     },
 
     replaceBusinessData(data) {
-      validateBackup(data);
+      validateBackup(data, { strict: false });
       inTransaction(database, () => replaceCollections(database, data));
     },
 
@@ -148,7 +148,7 @@ function hashSessionId(sessionId) {
   return createHash('sha256').update(sessionId).digest('hex');
 }
 
-function validateBackup(data) {
+function validateBackup(data, { strict = true } = {}) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
     throw new TypeError('Backup must be an object');
   }
@@ -165,6 +165,7 @@ function validateBackup(data) {
       if (!record || typeof record !== 'object' || Array.isArray(record)) {
         throw new TypeError(`Invalid record in collection: ${collection}`);
       }
+      validateBackupRecord(collection, record, strict);
     }
   }
 }
@@ -187,9 +188,116 @@ function projectForExport(collection, record) {
   const fields = EXPORTABLE_FIELDS[collection];
   return [Object.fromEntries(fields.flatMap((field) => {
     if (!Object.hasOwn(record, field)) return [];
+    if (field === 'analysis') {
+      const analysis = projectAnalysis(record.analysis);
+      return analysis ? [[field, analysis]] : [];
+    }
+    if (field === 'confirmation') {
+      const confirmation = projectConfirmation(record.confirmation);
+      return confirmation ? [[field, confirmation]] : [];
+    }
     const value = sanitizeExportValue(record[field]);
     return value === undefined ? [] : [[field, value]];
   }))];
+}
+
+const BUSINESS_FIELDS = Object.freeze({
+  products: new Set(EXPORTABLE_FIELDS.products),
+  inquiries: new Set(EXPORTABLE_FIELDS.inquiries),
+  customers: new Set(EXPORTABLE_FIELDS.customers),
+  reminders: new Set(EXPORTABLE_FIELDS.reminders),
+  audit_logs: new Set(EXPORTABLE_FIELDS.audit_logs),
+});
+
+function validateBackupRecord(collection, record, strict = true) {
+  if (collection === 'settings') {
+    if (typeof record.key !== 'string' || (strict && !EXPORTABLE_SETTING_KEYS.has(record.key)) || (strict && !isScalar(record.value))) {
+      throw new TypeError(`Invalid backup setting: ${record.key ?? '(missing)'}`);
+    }
+    return;
+  }
+
+  const fields = BUSINESS_FIELDS[collection];
+  const unknown = Object.keys(record).filter((field) => !fields.has(field));
+  if (strict && unknown.length) throw new TypeError(`Unknown backup field in ${collection}: ${unknown[0]}`);
+  if (!strict) return;
+  for (const [field, value] of Object.entries(record)) {
+    if (field === 'analysis') validateAnalysisBackup(value);
+    else if (field === 'confirmation') validateConfirmationBackup(value);
+    else if (field === 'price' && (typeof value !== 'number' || !Number.isFinite(value))) throw new TypeError(`Invalid backup field: ${collection}.${field}`);
+    else if (field === 'active' || field === 'completed') { if (typeof value !== 'boolean') throw new TypeError(`Invalid backup field: ${collection}.${field}`); }
+    else if (field === 'createdAt' || field === 'dueAt' || field === 'created_at') { if (typeof value !== 'string' || Number.isNaN(Date.parse(value))) throw new TypeError(`Invalid backup field: ${collection}.${field}`); }
+    else if (!isScalar(value) && !(Array.isArray(value) && value.every(isScalar))) throw new TypeError(`Invalid backup field: ${collection}.${field}`);
+  }
+}
+
+function validateAnalysisBackup(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError('Invalid backup analysis');
+  const fields = new Set(['intent', 'buyer', 'risks', 'missingFields', 'readiness', 'recommendedProducts', 'replyDraft', 'followUpDraft']);
+  if (Object.keys(value).some((key) => !fields.has(key))) throw new TypeError('Unknown backup analysis field');
+  if (value.buyer !== undefined && (!value.buyer || typeof value.buyer !== 'object' || Array.isArray(value.buyer) || Object.keys(value.buyer).some((key) => !['name', 'email', 'company', 'phone'].includes(key)) || Object.values(value.buyer).some((item) => typeof item !== 'string'))) throw new TypeError('Invalid backup analysis buyer');
+  for (const key of ['risks', 'missingFields']) if (value[key] !== undefined && (!Array.isArray(value[key]) || !value[key].every((item) => typeof item === 'string'))) throw new TypeError(`Invalid backup analysis ${key}`);
+  if (value.recommendedProducts !== undefined && (!Array.isArray(value.recommendedProducts) || !value.recommendedProducts.every((item) => item && typeof item === 'object' && !Array.isArray(item) && Object.keys(item).every((key) => ['id', 'name', 'reason'].includes(key)) && ['id', 'name', 'reason'].every((key) => typeof item[key] === 'string')))) throw new TypeError('Invalid backup recommendedProducts');
+  for (const key of ['intent', 'readiness', 'replyDraft', 'followUpDraft']) if (value[key] !== undefined && typeof value[key] !== 'string') throw new TypeError(`Invalid backup analysis ${key}`);
+}
+
+function validateConfirmationBackup(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError('Invalid backup confirmation');
+  const allowed = new Set(['inquirySnapshot', 'analysisSnapshot', 'edits', 'drafts', 'confirmedAt', 'operator', 'customerId']);
+  if (Object.keys(value).some((key) => !allowed.has(key))) throw new TypeError('Unknown backup confirmation field');
+  if (value.inquirySnapshot !== undefined) {
+    const { confirmation: _confirmation, ...snapshot } = value.inquirySnapshot;
+    validateBackupRecord('inquiries', snapshot);
+  }
+  if (value.analysisSnapshot !== undefined && value.analysisSnapshot !== null) validateAnalysisBackup(value.analysisSnapshot);
+  if (value.edits !== undefined) validateBackupRecord('customers', value.edits);
+  if (value.drafts !== undefined && (!value.drafts || typeof value.drafts !== 'object' || Array.isArray(value.drafts) || Object.keys(value.drafts).some((key) => !['reply', 'followUp'].includes(key)) || Object.values(value.drafts).some((item) => typeof item !== 'string'))) throw new TypeError('Invalid backup confirmation drafts');
+  if (value.confirmedAt !== undefined && (typeof value.confirmedAt !== 'string' || Number.isNaN(Date.parse(value.confirmedAt)))) throw new TypeError('Invalid backup confirmedAt');
+  if (value.operator !== undefined && typeof value.operator !== 'string') throw new TypeError('Invalid backup operator');
+  if (value.customerId !== undefined && typeof value.customerId !== 'string') throw new TypeError('Invalid backup customerId');
+}
+
+function projectAnalysis(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const result = {};
+  for (const field of ['intent', 'buyer', 'risks', 'missingFields', 'readiness', 'recommendedProducts', 'replyDraft', 'followUpDraft']) {
+    if (!Object.hasOwn(value, field)) continue;
+    const sanitized = sanitizeExportValue(value[field]);
+    if (field === 'buyer' && value.buyer && typeof value.buyer === 'object' && !Array.isArray(value.buyer)) result.buyer = projectAllowedObject(value.buyer, ['name', 'email', 'company', 'phone']);
+    else if (field === 'recommendedProducts' && Array.isArray(value.recommendedProducts)) result.recommendedProducts = value.recommendedProducts.map((item) => projectAllowedObject(item, ['id', 'name', 'reason'])).filter(Boolean);
+    else if (sanitized !== undefined) result[field] = sanitized;
+  }
+  return Object.keys(result).length ? result : undefined;
+}
+
+function projectConfirmation(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const result = {};
+  for (const field of ['inquirySnapshot', 'analysisSnapshot', 'edits', 'drafts', 'confirmedAt', 'operator', 'customerId']) {
+    if (!Object.hasOwn(value, field)) continue;
+    if (field === 'inquirySnapshot') result[field] = projectInquirySnapshot(value[field]);
+    else if (field === 'analysisSnapshot') result[field] = value[field] === null ? null : projectAnalysis(value[field]);
+    else if (field === 'edits') result[field] = projectAllowedObject(value[field], EXPORTABLE_FIELDS.customers);
+    else if (field === 'drafts') result[field] = projectAllowedObject(value[field], ['reply', 'followUp']);
+    else { const sanitized = sanitizeExportValue(value[field]); if (sanitized !== undefined) result[field] = sanitized; }
+  }
+  return Object.keys(result).length ? result : undefined;
+}
+
+function projectInquirySnapshot(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const result = projectForExport('inquiries', { ...value, confirmation: undefined })[0];
+  delete result.confirmation;
+  return result;
+}
+
+function projectAllowedObject(value, fields) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  return Object.fromEntries(fields.flatMap((field) => {
+    if (!Object.hasOwn(value, field)) return [];
+    const sanitized = sanitizeExportValue(value[field]);
+    return sanitized === undefined ? [] : [[field, sanitized]];
+  }));
 }
 
 function isScalar(value) {
@@ -220,7 +328,8 @@ function containsSensitiveKey(value) {
 
 function replaceCollections(database, data) {
   for (const collection of BUSINESS_COLLECTIONS) {
-    database.exec(`DELETE FROM ${collection}`);
+    if (collection === 'settings') database.prepare(`DELETE FROM settings WHERE key IN (${[...EXPORTABLE_SETTING_KEYS].map(() => '?').join(',')})`).run(...EXPORTABLE_SETTING_KEYS);
+    else database.exec(`DELETE FROM ${collection}`);
     for (const record of data[collection]) insertRecord(database, collection, record);
   }
 }

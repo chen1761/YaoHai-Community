@@ -39,7 +39,9 @@ export function createApp(options = {}) {
       } else if (error.code === 'PAYLOAD_TOO_LARGE') {
         sendJson(response, 413, { error: 'payload_too_large' });
       } else if (error instanceof SyntaxError || error instanceof TypeError) {
-        sendJson(response, 400, { error: 'invalid_request' });
+        sendJson(response, 400, { error: 'invalid_request', message: error.message });
+      } else if (error.code === 'CONFIGURATION_REQUIRED') {
+        sendJson(response, 503, { error: 'configuration_required', message: error.message });
       } else {
         sendJson(response, 500, { error: 'internal_error' });
       }
