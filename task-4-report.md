@@ -16,3 +16,10 @@ Attention: the new route files are loaded by the app and should be included in t
 - Expanded `npm run check` to all server and test runtime JavaScript files; removed the stale `validBody` test dependency.
 
 Verification: `npm run check` and `npm test` passed; 33 tests passed.
+
+## Fix Round 2
+
+- Inquiry action routes now reuse the canonical full UUID pattern (`8-4-4-4-12`), rejecting malformed IDs such as `deadbeef` before inquiry lookup.
+- Added an HTTP regression test for malformed inquiry analysis action IDs.
+
+Verification: `npm run check` and `npm test` passed after the fix.
