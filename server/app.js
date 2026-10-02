@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { createStore } from './data-store.js';
 import { handleAuthRoute } from './routes/auth.js';
 import { handleBackupRoute } from './routes/backups.js';
+import { handleSettingsRoute } from './routes/settings.js';
 
 const jsonHeaders = { 'content-type': 'application/json; charset=utf-8' };
 const MAX_BODY_BYTES = 10 * 1024 * 1024;
@@ -20,6 +21,7 @@ export function createApp(options = {}) {
       }
       if (await handleAuthRoute(request, response, context)) return;
       if (await handleBackupRoute(request, response, context)) return;
+      if (await handleSettingsRoute(request, response, context)) return;
       sendJson(response, 404, { error: 'not_found' });
     } catch (error) {
       if (response.headersSent) {

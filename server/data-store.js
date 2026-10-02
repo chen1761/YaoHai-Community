@@ -47,6 +47,18 @@ export function createStore(dbPath) {
   `);
 
   const store = {
+    setInternalSetting(key, value) {
+      database.prepare('INSERT INTO settings (key, value_json) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json').run(key, JSON.stringify(value));
+    },
+    getInternalSetting(key) {
+      const row = database.prepare('SELECT value_json FROM settings WHERE key = ?').get(key);
+      return row ? JSON.parse(row.value_json) : undefined;
+    },
+    getPublicProviderConfig() {
+      const value = this.getInternalSetting('ai_provider_config');
+      if (!value) return { provider: null, model: null, baseUrl: null, configured: false, maskedKey: null };
+      return { provider: value.provider, model: value.model, baseUrl: value.baseUrl, configured: true, maskedKey: '********' };
+    },
     async createOwner(username, password) {
       if (typeof username !== 'string' || username.trim() === '') {
         throw new TypeError('Username is required');
