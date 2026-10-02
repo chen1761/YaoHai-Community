@@ -58,4 +58,7 @@ test('workspace navigation and reminder deletion use recoverable async boundarie
   assert.match(script, /onboarding\.classList\.add\('hidden'\); await retryRender\(\)/);
   assert.match(script, /data-delete-reminder[\s\S]*try[\s\S]*catch[\s\S]*finally/);
   assert.match(script, /提醒删除失败，请重试/);
+  assert.doesNotMatch(script, /catch\s*\([^)]*\)\s*\{[^}]*await render\(\)/s);
+  assert.equal((script.match(/hashchange/g) || []).length, 1);
+  assert.match(script, /const changed = state\.view !== nextView/);
 });

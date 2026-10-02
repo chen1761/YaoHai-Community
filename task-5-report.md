@@ -16,3 +16,9 @@
 - Routed data navigation, nav links, hash changes, and post-login rendering through the recoverable render boundary with actionable expired-session handling.
 - Added guarded reminder deletion with failure feedback, list recovery, and control restoration in `finally`.
 - Added regression assertions for navigation rejection handling and deletion error recovery. Verification: `npm run check && npm test` passed with 37 tests.
+
+## Fix Round 3
+
+- Replaced event/error-path direct render calls with `retryRender`.
+- Made hashchange the single normal navigation render owner; same-view navigation retries without a duplicate hash-triggered request.
+- Added regression assertions for guarded catch paths and single-owner navigation. Verification: `npm run check && npm test` passed with 37 tests.
