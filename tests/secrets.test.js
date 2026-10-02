@@ -1,55 +1,72 @@
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { extname, join, relative, sep } from 'node:path';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
-const root = join(import.meta.dirname, '..');
-const sourceExtensions = new Set([
-  '.cjs', '.css', '.env', '.example', '.html', '.js', '.json', '.mjs',
-  '.sh', '.ts', '.tsx', '.yaml', '.yml',
-]);
-const ignoredDirectories = new Set(['.git', 'node_modules', 'coverage']);
-const ownFile = relative(root, import.meta.filename);
-const routeAssertionFile = join('tests', 'isolation.test.js');
-
-function sourceFiles(directory = root) {
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) {
-      return ignoredDirectories.has(entry.name) ? [] : sourceFiles(path);
-    }
-    return sourceExtensions.has(extname(entry.name)) ? [path] : [];
-  });
-}
+import { scanRepository } from './repository-policy.js';
 
 test('public source contains no credentials or commercial implementations', () => {
-  const forbidden = [
-    ['private key block', /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
-    ['real secret prefix', /\b(?:sk-(?:proj|live|prod)-|rk-(?:live|prod)-|ghp_|github_pat_|AKIA|xox[baprs]-)[A-Za-z0-9_-]{8,}\b/],
-    ['hardcoded authorization', /authorization\s*[:=]\s*['"](?:bearer|basic)\s+[^'"\s]+/i],
-    ['master password setting', /APP_MASTER_PASSWORD/],
-    ['license signing setting', /LICENSE_SIGNING_SECRET/],
-    ['administration route', /\/api\/admin(?:\/|\b)/],
-    ['license generation route', /\/api\/license\/code\/generate/],
-    ['payment route', /\/api\/payments(?:\/|\b)/],
-    ['license generator implementation', /(?:function|class)\s+(?:generateLicense|createLicenseCode|signLicense|LicenseGenerator)\b/],
+  assert.deepEqual(scanRepository(join(import.meta.dirname, '..')), []);
+});
+
+test('scanner detects common provider credentials', () => {
+  const fixtures = [
+    'sk-abcdefghijklmnopqrstuvwxyz123456', // policy-fixture
+    'sk-ant-abcdefghijklmnopqrstuvwxyz123456', // policy-fixture
+    'AIzaabcdefghijklmnopqrstuvwxyz123456789', // policy-fixture
   ];
 
-  const findings = [];
-  for (const file of sourceFiles()) {
-    const relativePath = relative(root, file);
-    if (relativePath === ownFile) continue;
-    const content = readFileSync(file, 'utf8');
-    for (const [label, pattern] of forbidden) {
-      if (relativePath === routeAssertionFile && label.endsWith('route')) continue;
-      if (pattern.test(content)) findings.push(`${relativePath}: ${label}`);
-    }
+  for (const [index, credential] of fixtures.entries()) {
+    withFixture({ [`credential-${index}.txt`]: credential }, (fixtureRoot) => {
+      assert.equal(scanRepository(fixtureRoot).length, 1, credential.slice(0, 7));
+    });
   }
-
-  assert.deepEqual(findings, []);
 });
 
-test('secret scanner excludes only its own assertions, not all tests', () => {
-  assert.equal(statSync(join(root, 'tests')).isDirectory(), true);
-  assert.ok(sourceFiles().some((file) => relative(root, file).startsWith(`tests${sep}`)));
+test('scanner examines jsx and extensionless scripts', () => {
+  withFixture({
+    'component.jsx': 'const token = "sk-abcdefghijklmnopqrstuvwxyz123456";', // policy-fixture
+    run: '#!/bin/sh\nAPP_MASTER_PASSWORD=unsafe', // policy-fixture
+  }, (fixtureRoot) => {
+    assert.deepEqual(scanRepository(fixtureRoot).map(({ path }) => path).sort(), [
+      'component.jsx',
+      'run',
+    ]);
+  });
 });
+
+test('line exemptions do not hide unmarked content in the same file', () => {
+  const cases = {
+    'tests/secrets.test.js': [
+      'const fixture = "sk-abcdefghijklmnopqrstuvwxyz123456"; // policy-fixture', // policy-fixture
+      'const leaked = "sk-ant-abcdefghijklmnopqrstuvwxyz123456";', // policy-fixture
+    ].join('\n'),
+    'tests/repository-policy.js': [
+      'const rule = /AIza[0-9A-Za-z_-]{20,}/; // policy-rule', // policy-fixture
+      'const leaked = "AIzaabcdefghijklmnopqrstuvwxyz123456789";', // policy-fixture
+    ].join('\n'),
+  };
+
+  for (const [path, content] of Object.entries(cases)) {
+    withFixture({ [path]: content }, (fixtureRoot) => {
+      const findings = scanRepository(fixtureRoot);
+      assert.equal(findings.length, 1, path);
+      assert.equal(findings[0].line, 2, path);
+    });
+  }
+});
+
+function withFixture(files, run) {
+  const fixtureRoot = mkdtempSync(join(tmpdir(), 'yaohai-policy-'));
+  try {
+    for (const [relativePath, content] of Object.entries(files)) {
+      const path = join(fixtureRoot, relativePath);
+      mkdirSync(join(path, '..'), { recursive: true });
+      writeFileSync(path, content);
+    }
+    run(fixtureRoot);
+  } finally {
+    rmSync(fixtureRoot, { recursive: true, force: true });
+  }
+}
