@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b3b3f"><title>YaoHai Community</title><link rel="icon" href="/app-icon.svg"><link rel="stylesheet" href="/styles.css"></head>
+<body>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<dialog id="dialog"><form method="dialog"><button class="icon-button close" aria-label="关闭">×</button><div id="dialog-content"></div></form></dialog>
+<header class="topbar"><button id="nav-toggle" class="icon-button" aria-label="打开导航">☰</button><a class="brand" href="#dashboard"><img src="/app-icon.svg" alt="">YaoHai Community</a><span id="connection" class="status">本地工作区</span><button id="logout" class="secondary">退出</button></header>
+<div class="shell"><nav id="nav" aria-label="主导航"><a href="#dashboard" data-view="dashboard">工作台</a><a href="#products" data-view="products">产品资料库</a><a href="#inquiries" data-view="inquiries">询盘处理</a><a href="#customers" data-view="customers">客户管理</a><a href="#reminders" data-view="reminders">跟进提醒</a><a href="#settings" data-view="settings">设置与备份</a></nav>
+<main id="app" tabindex="-1"><section hidden><table><caption>工作区数据</caption></table><label for="backup-file">备份文件</label><input id="backup-file" type="file"></section></main></div>
+<section id="onboarding" class="onboarding" aria-labelledby="welcome-title"><div class="welcome"><p class="eyebrow">本地优先的外贸工作台</p><h1 id="welcome-title">从第一条询盘开始</h1><p>在你的电脑上整理产品、客户和跟进记录。AI 是可选的，所有关键判断都由你确认。</p><div class="steps"><span>1 设置本机密码</span><span>2 准备工作区</span><span>3 处理第一条询盘</span></div><form id="setup-form" class="auth-form"><label for="setup-user">用户名</label><input id="setup-user" name="username" required value="owner"><label for="setup-password">本机密码（至少 10 个字符）</label><input id="setup-password" name="password" type="password" minlength="10" required><button>创建本机工作区</button></form><form id="login-form" class="auth-form hidden"><label for="login-user">用户名</label><input id="login-user" name="username" required value="owner"><label for="login-password">本机密码</label><input id="login-password" name="password" type="password" required><button>进入工作区</button></form><p id="auth-note" class="note"></p></div></section>
+<script type="module" src="/script.js"></script></body></html>
